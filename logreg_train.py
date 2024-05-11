@@ -25,10 +25,13 @@
 
 
 ###################################################
-#        Versione con limiti di subject            #
+#        Versione con limiti di subject           #
 ###################################################
 
 import numpy as np
+import pandas as pd
+import sys
+import os
 from describe import get_data
 learning_rate = 0.01
 epochs = 1000
@@ -82,8 +85,14 @@ def train_model(X_train, y_train, house):
 		return weights, bias
 
 if __name__ == '__main__':
-	# Load the data
-	data = get_data('./datasets/dataset_train.csv')[0]
+	if len(sys.argv) != 2:
+		print("EHhH che ne dici di mettere il file train giusto?")
+		sys.exit(1)
+	dataset_path = sys.argv[1]
+	if not os.path.isfile(dataset_path):
+		print(f"The provided path '{dataset_path}' does not exist or is not a file.")
+		sys.exit(1)
+	data = get_data(dataset_path)[0]
 	data = data[1:, :]
 
 	# Take only the classes we consider, in this case "Defense Against the Dark Arts" and "Herbology"
@@ -99,6 +108,8 @@ if __name__ == '__main__':
 
 	houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
 
+	if not os.path.exists('models'):
+		os.mkdir('models') #! Perche si blocca se non esiste la cartella.
 	for house in houses:
 		# Train the models
 		weights, bias = train_model(X, y, house)

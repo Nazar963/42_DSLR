@@ -5,7 +5,7 @@ def get_data(filename):
 	main_data = np.genfromtxt(filename, delimiter=",", skip_header=1, dtype=str, encoding=None)
 	header = np.genfromtxt(filename, delimiter=",", dtype=str, max_rows=1)
 	header = header[5:]
-	main_data = main_data[:, 1:]  # Exclude Index and Hogwarts House
+	main_data = main_data[:, 1:]  # Exclude Index from all rows
 	main_data[main_data == ''] = np.nan
 	desc_data = main_data[:, 5:].astype(np.double)
 	# print(f"DESC Data: {desc_data}")
@@ -99,5 +99,3 @@ if __name__ == '__main__':
 		output[i] = '\t'.join([output[i].split('\t')[j].ljust(column_widths[j] + 1) for j in range(num_columns)])
 
 	print('\n'.join(output))
-
-  
