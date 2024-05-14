@@ -5,23 +5,52 @@
 # import pickle
 # import sys
 # from sklearn.linear_model import LogisticRegression
+# from sklearn.metrics import accuracy_score
 # from sklearn.model_selection import train_test_split
+# from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
+# from sklearn.preprocessing import LabelEncoder
 
 # #* sag vuol dire Stochastic Average Gradient descent 
 # if __name__ == '__main__':
-# 	if len(sys.argv) != 2:
-# 		print("EHhH che ne dici di mettere il file train giusto?")
-# 		sys.exit(1)
-# 	dataset_path = sys.argv[1]
-# 	data = pd.read_csv(dataset_path)
-# 	data = data[['Defense Against the Dark Arts', 'Astronomy', 'Hogwarts House']].dropna()
-# 	X = data[['Defense Against the Dark Arts', 'Astronomy']]
+# 	# with open('datasets/datasets_train', 'r') as file:
+# 	# 	contents = file.read()
+# 	# dataset_path = contents
+# 	data = pd.read_csv('datasets/dataset_train.csv')
+
+# 	data_clean = data.dropna()
+# 	C = data_clean.drop(['Hogwarts House', 'First Name', 'Last Name', 'Birthday', 'Best Hand'], axis=1)
+# 	u = data_clean['Hogwarts House']
+# 	encoder = LabelEncoder()
+# 	u_encoded = encoder.fit_transform(u)
+# 	selector = SelectKBest(mutual_info_classif, k=2)
+# 	X_new = selector.fit_transform(C, u_encoded)
+# 	mask = selector.get_support()
+# 	best_features = C.columns[mask]
+# 	print(f"Best features: {best_features}")
+
+# 	data = data[['Defense Against the Dark Arts', 'Herbology', 'Hogwarts House']].dropna()
+# 	X = data[['Defense Against the Dark Arts', 'Herbology']]
 # 	y = data['Hogwarts House']
 # 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 # 	model = LogisticRegression(solver='sag', multi_class='multinomial', max_iter=1000)
 # 	model.fit(X_train, y_train)
-# 	with open('hogwarts_model.pkl', 'wb') as file:
-# 		pickle.dump(model, file)
+# 	# with open('datasets/datasets_test', 'r') as file:
+# 	# 	contents_test = file.read()
+# 	test_data = pd.read_csv('datasets/dataset_test.csv')
+# 	test_data = test_data.dropna(subset=['Defense Against the Dark Arts', 'Herbology'])
+# 	features = test_data[['Defense Against the Dark Arts', 'Herbology']]
+# 	predictions = model.predict(features)
+# 	y_pred = model.predict(X_test)
+# 	accuracy = accuracy_score(y_test, y_pred)
+# 	print(f'Accuracy: {accuracy * 100}%')
+# 	output = pd.DataFrame({
+# 		'Index': test_data.index,
+# 		'Hogwarts House': predictions
+# 	})
+# 	output.to_csv('houses.csv', index=False)
+
+# 	# with open('hogwarts_model.pkl', 'wb') as file:
+# 	# 	pickle.dump(model, file)
 
 
 ###################################################
@@ -48,8 +77,8 @@ def compute_loss(y_pred, y_true):
 		return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
 # Update parameters
-def update_parameters(weights, bias, dw, db):
-		weights -= learning_rate * dw
+def update_parameters(weights, bias, dw, db, lambda_=0.01):
+		weights -= learning_rate * (dw + lambda_ * weights)
 		bias -= learning_rate * db
 		return weights, bias
 
@@ -92,8 +121,8 @@ if __name__ == '__main__':
 	if not os.path.isfile(dataset_path):
 		print(f"The provided path '{dataset_path}' does not exist or is not a file.")
 		sys.exit(1)
-	data = get_data(dataset_path)[0]
-	data = data[1:, :]
+	data = get_data(dataset_path)[0][1:, :]
+	# print(data)
 
 	# Take only the classes we consider, in this case "Defense Against the Dark Arts" and "Herbology"
 	data = data[:, [1, 8, 9]]
