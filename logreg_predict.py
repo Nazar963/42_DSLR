@@ -31,7 +31,6 @@ def main(fileName):
 
 	data = get_data(fileName)[0][1:, [1, 8, 9]]
 	data = np.where(data == '', np.nan, data)
-
 	X = np.nan_to_num(data[:, 1:].astype(float))
 	houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
 

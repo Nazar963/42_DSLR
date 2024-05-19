@@ -2,7 +2,6 @@
 #        Versione senza limiti di subject         #
 ###################################################
 # import pandas as pd
-# import pickle
 # import sys
 # from sklearn.linear_model import LogisticRegression
 # from sklearn.metrics import accuracy_score
@@ -10,11 +9,7 @@
 # from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 # from sklearn.preprocessing import LabelEncoder
 
-# #* sag vuol dire Stochastic Average Gradient descent 
 # if __name__ == '__main__':
-# 	# with open('datasets/datasets_train', 'r') as file:
-# 	# 	contents = file.read()
-# 	# dataset_path = contents
 # 	data = pd.read_csv('datasets/dataset_train.csv')
 
 # 	data_clean = data.dropna()
@@ -34,8 +29,6 @@
 # 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 # 	model = LogisticRegression(solver='sag', multi_class='multinomial', max_iter=1000)
 # 	model.fit(X_train, y_train)
-# 	# with open('datasets/datasets_test', 'r') as file:
-# 	# 	contents_test = file.read()
 # 	test_data = pd.read_csv('datasets/dataset_test.csv')
 # 	test_data = test_data.dropna(subset=['Defense Against the Dark Arts', 'Herbology'])
 # 	features = test_data[['Defense Against the Dark Arts', 'Herbology']]
@@ -49,10 +42,6 @@
 # 	})
 # 	output.to_csv('houses.csv', index=False)
 
-# 	# with open('hogwarts_model.pkl', 'wb') as file:
-# 	# 	pickle.dump(model, file)
-
-
 ###################################################
 #        Versione con limiti di subject           #
 ###################################################
@@ -62,56 +51,71 @@ import pandas as pd
 import sys
 import os
 from describe import get_data
-learning_rate = 0.01
+learning_rate = 0.02
 epochs = 1000
 
-# Initialize parameters
 def initialize_parameters(n_features):
-		# Initialize weights and intercept to zeros
-		weights = np.zeros((n_features, 1))
-		bias = 0
-		return weights, bias
+	weights = np.zeros((n_features, 1))
+	bias = 0
+	return weights, bias
 
-# Loss function (binary cross-entropy) -> log(likelihood)
 def compute_loss(y_pred, y_true):
-		return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+	here = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+	# print(f"this is first {here}")
 
-# Update parameters
+	log_predictions_true = np.log(y_pred)
+
+	# Calculate the log of the predicted probabilities for the negative class (event is false)
+	log_predictions_false = np.log(1 - y_pred)
+
+	# Compute the part of the loss where the true label is 1
+	loss_true_label = y_true * log_predictions_true
+
+	# Compute the part of the loss where the true label is 0
+	loss_false_label = (1 - y_true) * log_predictions_false
+
+	# Combine the losses for the true and false labels
+	total_loss = loss_true_label + loss_false_label
+
+	# Calculate the mean of the total loss across all data points
+	mean_total_loss = np.mean(total_loss)
+
+	# Since we need to minimize the loss and most optimizers perform minimization,
+	# we return the negative of the mean loss
+	simpler_way = -mean_total_loss
+	print(simpler_way)
+	return here
+
 def update_parameters(weights, bias, dw, db, lambda_=0.01):
-		weights -= learning_rate * (dw + lambda_ * weights)
-		bias -= learning_rate * db
-		return weights, bias
+	weights -= learning_rate * (dw + lambda_ * weights)
+	bias -= learning_rate * db
+	return weights, bias
 
-# Sigmoid function -> p(x) = 1 / e^-(b_0 + sum_n(b_n * x_n))
 def sigmoid(z):
-		return 1 / (1 + np.exp(-z))
+	return 1 / (1 + np.exp(-z))
 
-# Forward pass
 def forward_pass(X, weights, bias):
-		z = np.dot(X, weights) + bias
-		return sigmoid(z)
+	z = np.dot(X, weights) + bias
+	return sigmoid(z)
 
-# Gradient descent
 def gradient_descent(X:np.ndarray, y_true:np.ndarray, y_pred:np.ndarray):
-		dw = np.dot(X.T, (y_pred - y_true)) / len(y_true)
-		db = np.mean(y_pred - y_true)
-		return dw, db
+	dw = np.dot(X.T, (y_pred - y_true)) / len(y_true)
+	db = np.mean(y_pred - y_true)
+	return dw, db
 
-# Model training
 def train_model(X_train, y_train, house):
-		n_features = X_train.shape[1]
-		weights, bias = initialize_parameters(n_features)
-		#Convert y_train to binary
-		y_train = (y_train == house).astype(int)
-		y_train = y_train.reshape(-1, 1)
-		for i in range(epochs):
-				y_pred = forward_pass(X_train, weights, bias)
-				loss = compute_loss(y_pred, y_train)
-				dw, db = gradient_descent(X_train, y_train, y_pred)
-				weights, bias = update_parameters(weights, bias, dw, db)
-				if i % 100 == 0:
-						print(f"Iteration {i}, Loss: {loss}")
-		return weights, bias
+	n_features = X_train.shape[1]
+	weights, bias = initialize_parameters(n_features)
+	y_train = (y_train == house).astype(int)
+	y_train = y_train.reshape(-1, 1)
+	for i in range(epochs):
+		y_pred = forward_pass(X_train, weights, bias)
+		loss = compute_loss(y_pred, y_train)
+		dw, db = gradient_descent(X_train, y_train, y_pred)
+		weights, bias = update_parameters(weights, bias, dw, db)
+		if i % 100 == 0:
+			print(f"Iteration {i}, Loss: {loss}")
+	return weights, bias
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
@@ -121,38 +125,22 @@ if __name__ == '__main__':
 	if not os.path.isfile(dataset_path):
 		print(f"The provided path '{dataset_path}' does not exist or is not a file.")
 		sys.exit(1)
+
 	data = get_data(dataset_path)[0][1:, :]
-	# print(data)
-
-	# Take only the classes we consider, in this case "Defense Against the Dark Arts" and "Herbology"
 	data = data[:, [1, 8, 9]]
-	# Clear
 	data = np.where(data == '', np.nan, data)
-
-	# Split the data into features and target
 	X = data[:, 1:]
-	y = data[:, 0]
 	X = X.astype(float)
 	X = np.nan_to_num(X)
-
+	y = data[:, 0]
 	houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
 
 	if not os.path.exists('models'):
-		os.mkdir('models') #! Perche si blocca se non esiste la cartella.
+		os.mkdir('models')
+
 	for house in houses:
-		# Train the models
 		weights, bias = train_model(X, y, house)
-		print(f"Training for {house} complete")
-		print(weights, bias)
-		# Save the models
+		# print(f"Training for {house} complete")
+		# print(weights, bias)
 		np.save(f'models/{house}_weights.npy', weights)
 		np.save(f'models/{house}_bias.npy', bias)
-
-
-
-# # Model evaluation
-# def evaluate_model(X_test, y_test, weight, bias):
-# 		y_pred = predict(X_test, weight, bias)
-# 		accuracy = np.mean(y_pred == y_test)
-# 		return accuracy
-# 		return (y_pred > 0.5).astype(int)
