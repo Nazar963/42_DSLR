@@ -50,72 +50,58 @@ import numpy as np
 import pandas as pd
 import sys
 import os
+import pickle
 from describe import get_data
-learning_rate = 0.02
+from sklearn.preprocessing import StandardScaler
+learning_rate = 0.1
 epochs = 1000
 
 def initialize_parameters(n_features):
-	weights = np.zeros((n_features, 1))
-	bias = 0
-	return weights, bias
+    weights = np.zeros((n_features, 1))
+    bias = 0
+    return weights, bias
 
-def compute_loss(y_pred, y_true):
-	here = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
-	# print(f"this is first {here}")
+def compute_loss(y_pred, y_true, weights, lambda_=0.01):
+    m = y_true.shape[0]
+    cost = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+    reg_cost = (lambda_ / (2 * m)) * np.sum(np.square(weights))
+    return cost + reg_cost
 
-	log_predictions_true = np.log(y_pred)
-
-	# Calculate the log of the predicted probabilities for the negative class (event is false)
-	log_predictions_false = np.log(1 - y_pred)
-
-	# Compute the part of the loss where the true label is 1
-	loss_true_label = y_true * log_predictions_true
-
-	# Compute the part of the loss where the true label is 0
-	loss_false_label = (1 - y_true) * log_predictions_false
-
-	# Combine the losses for the true and false labels
-	total_loss = loss_true_label + loss_false_label
-
-	# Calculate the mean of the total loss across all data points
-	mean_total_loss = np.mean(total_loss)
-
-	# Since we need to minimize the loss and most optimizers perform minimization,
-	# we return the negative of the mean loss
-	simpler_way = -mean_total_loss
-	print(simpler_way)
-	return here
-
-def update_parameters(weights, bias, dw, db, lambda_=0.01):
-	weights -= learning_rate * (dw + lambda_ * weights)
-	bias -= learning_rate * db
-	return weights, bias
+def update_parameters(weights, bias, dw, db, learning_rate=0.01, lambda_=0.01):
+    weights -= learning_rate * (dw + lambda_ * weights)
+    bias -= learning_rate * db
+    return weights, bias
 
 def sigmoid(z):
-	return 1 / (1 + np.exp(-z))
+    return 1 / (1 + np.exp(-z))
 
 def forward_pass(X, weights, bias):
-	z = np.dot(X, weights) + bias
-	return sigmoid(z)
+    z = np.dot(X, weights) + bias
+    return sigmoid(z)
 
-def gradient_descent(X:np.ndarray, y_true:np.ndarray, y_pred:np.ndarray):
-	dw = np.dot(X.T, (y_pred - y_true)) / len(y_true)
-	db = np.mean(y_pred - y_true)
-	return dw, db
+def gradient_descent(X, y_true, y_pred):
+    m = y_true.shape[0]
+    dw = np.dot(X.T, (y_pred - y_true)) / m
+    db = np.mean(y_pred - y_true)
+    return dw, db
 
-def train_model(X_train, y_train, house):
-	n_features = X_train.shape[1]
-	weights, bias = initialize_parameters(n_features)
-	y_train = (y_train == house).astype(int)
-	y_train = y_train.reshape(-1, 1)
-	for i in range(epochs):
-		y_pred = forward_pass(X_train, weights, bias)
-		loss = compute_loss(y_pred, y_train)
-		dw, db = gradient_descent(X_train, y_train, y_pred)
-		weights, bias = update_parameters(weights, bias, dw, db)
-		if i % 100 == 0:
-			print(f"Iteration {i}, Loss: {loss}")
-	return weights, bias
+def train_model(X_train, y_train, house, learning_rate=1, epochs=1000, lambda_=0.01):
+    n_features = X_train.shape[1]
+    weights, bias = initialize_parameters(n_features)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    y_train = (y_train == house).astype(int).reshape(-1, 1)
+    
+    for i in range(epochs):
+        y_pred = forward_pass(X_train_scaled, weights, bias)
+        loss = compute_loss(y_pred, y_train, weights, lambda_)
+        dw, db = gradient_descent(X_train_scaled, y_train, y_pred)
+        weights, bias = update_parameters(weights, bias, dw, db, learning_rate, lambda_)
+        
+        if i % 100 == 0:
+            print(f"Iteration {i}, Loss: {loss}")
+    
+    return weights, bias, scaler
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
@@ -139,8 +125,10 @@ if __name__ == '__main__':
 		os.mkdir('models')
 
 	for house in houses:
-		weights, bias = train_model(X, y, house)
+		weights, bias, scaler = train_model(X, y, house)
 		# print(f"Training for {house} complete")
 		# print(weights, bias)
 		np.save(f'models/{house}_weights.npy', weights)
 		np.save(f'models/{house}_bias.npy', bias)
+	with open('scaler.pkl', 'wb') as f:
+		pickle.dump(scaler, f)
