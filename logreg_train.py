@@ -55,20 +55,21 @@ from describe import get_data
 from sklearn.preprocessing import StandardScaler
 learning_rate = 0.1
 epochs = 1000
+lambda_=0.01
 
 def initialize_parameters(n_features):
     weights = np.zeros((n_features, 1))
     bias = 0
     return weights, bias
 
-def compute_loss(y_pred, y_true, weights, lambda_=0.01):
+def compute_loss(y_pred, y_true, weights):
     m = y_true.shape[0]
     cost = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
     reg_cost = (lambda_ / (2 * m)) * np.sum(np.square(weights))
     return cost + reg_cost
 
-def update_parameters(weights, bias, dw, db, learning_rate=0.01, lambda_=0.01):
-    weights -= learning_rate * (dw + lambda_ * weights)
+def update_parameters(weights, bias, dw, db, y_true):
+    weights -= learning_rate * (dw + (lambda_ * weights) / len(y_true))
     bias -= learning_rate * db
     return weights, bias
 
@@ -85,7 +86,7 @@ def gradient_descent(X, y_true, y_pred):
     db = np.mean(y_pred - y_true)
     return dw, db
 
-def train_model(X_train, y_train, house, learning_rate=1, epochs=1000, lambda_=0.01):
+def train_model(X_train, y_train, house):
     n_features = X_train.shape[1]
     weights, bias = initialize_parameters(n_features)
     scaler = StandardScaler()
@@ -94,9 +95,9 @@ def train_model(X_train, y_train, house, learning_rate=1, epochs=1000, lambda_=0
     
     for i in range(epochs):
         y_pred = forward_pass(X_train_scaled, weights, bias)
-        loss = compute_loss(y_pred, y_train, weights, lambda_)
+        loss = compute_loss(y_pred, y_train, weights)
         dw, db = gradient_descent(X_train_scaled, y_train, y_pred)
-        weights, bias = update_parameters(weights, bias, dw, db, learning_rate, lambda_)
+        weights, bias = update_parameters(weights, bias, dw, db, y_train)
         
         if i % 100 == 0:
             print(f"Iteration {i}, Loss: {loss}")
